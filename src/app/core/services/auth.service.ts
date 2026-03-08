@@ -1,3 +1,4 @@
+import { environment } from '../../../environments/environment';
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -6,7 +7,7 @@ import { AuthResponse, LoginRequest, RegisterRequest, MfaVerifyRequest, ApiRespo
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = '/api';
+  private apiUrl = environment.apiUrl;
   private tokenSignal = signal<string | null>(localStorage.getItem('auth_token'));
 
   isAuthenticated = computed(() => !!this.tokenSignal());
