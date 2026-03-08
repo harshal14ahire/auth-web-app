@@ -6,11 +6,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://auth-application.onrender.com/api/:path*"
+      "destination": "https://auth-application-2zvz.onrender.com/api/:path*"
     },
     {
       "source": "/oauth2/:path*",
-      "destination": "https://auth-application.onrender.com/oauth2/:path*"
+      "destination": "https://auth-application-2zvz.onrender.com/oauth2/:path*"
     }
   ],
   "headers": [
