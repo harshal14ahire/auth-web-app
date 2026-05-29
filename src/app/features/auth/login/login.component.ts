@@ -1,8 +1,9 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { get } from '@github/webauthn-json';
 
 @Component({
   selector: 'app-login',
@@ -13,6 +14,9 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
   username = signal('');
   password = signal('');
   loading = signal(false);
@@ -24,8 +28,6 @@ export class LoginComponent {
   mfaMethods = signal<string[]>([]);
   selectedMethod = signal('');
   mfaCode = signal('');
-
-  constructor(private authService: AuthService, private router: Router) {}
 
   onLogin(): void {
     this.loading.set(true);
@@ -59,7 +61,39 @@ export class LoginComponent {
   }
 
   sendOtp(): void {
-    this.authService.sendOtp(this.selectedMethod()).subscribe();
+    this.authService.sendLoginOtp(this.mfaToken(), this.selectedMethod()).subscribe();
+  }
+
+  async webAuthnLogin() {
+    this.loading.set(true);
+    this.error.set('');
+    
+    this.authService.webAuthnLoginOptions(this.mfaToken()).subscribe({
+      next: async (optionsRes) => {
+        try {
+          // get the passkey credential from the browser
+          const credential = await get({ publicKey: optionsRes.options });
+          
+          // Use the credential.id as the "code" for verifyMfa
+          this.authService.verifyMfa({
+            mfaToken: this.mfaToken(),
+            code: credential.id, // the base64url encoded credential ID
+            method: 'WEBAUTHN'
+          }).subscribe({
+            next: () => { this.loading.set(false); this.router.navigate(['/dashboard']); },
+            error: (err) => { this.loading.set(false); this.error.set(err.error?.message || 'Verification failed'); }
+          });
+          
+        } catch (e: any) {
+          this.loading.set(false);
+          this.error.set(e.message || 'Passkey authentication cancelled or failed');
+        }
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(err.error?.message || 'Failed to fetch passkey options');
+      }
+    });
   }
 
   loginGoogle(): void { this.authService.loginWithGoogle(); }

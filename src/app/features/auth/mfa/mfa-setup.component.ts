@@ -1,8 +1,10 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+
+import { create } from '@github/webauthn-json';
 
 @Component({
   selector: 'app-mfa-setup',
@@ -31,9 +33,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <div class="icon">💬</div>
           <div class="info"><h3>SMS OTP</h3><p>Receive codes via text message</p></div>
         </div>
-        <div class="mfa-option" role="button" tabindex="0" aria-label="Set up WebAuthn passkey" style="opacity:0.6">
+        <div class="mfa-option" (click)="setupWebAuthn()" role="button" tabindex="0" aria-label="Set up WebAuthn passkey">
           <div class="icon">🔑</div>
-          <div class="info"><h3>Passkey / WebAuthn</h3><p>Biometric or security key (Coming Soon)</p></div>
+          <div class="info"><h3>Passkey / WebAuthn</h3><p>Biometric or security key</p></div>
         </div>
 
         <!-- TOTP Setup Panel -->
@@ -67,6 +69,9 @@ import { AuthService } from '../../../core/services/auth.service';
   `
 })
 export class MfaSetupComponent {
+  private auth = inject(AuthService);
+  private router = inject(Router);
+
   showTotpSetup = signal(false);
   showOtpVerify = signal(false);
   otpMethod = signal('');
@@ -75,8 +80,6 @@ export class MfaSetupComponent {
   verifyCode = signal('');
   message = signal('');
   error = signal('');
-
-  constructor(private auth: AuthService, private router: Router) {}
 
   setupTotp(): void {
     this.resetPanels();
@@ -115,6 +118,40 @@ export class MfaSetupComponent {
   private resetPanels(): void {
     this.showTotpSetup.set(false); this.showOtpVerify.set(false);
     this.message.set(''); this.error.set(''); this.verifyCode.set('');
+  }
+
+  async setupWebAuthn() {
+    this.resetPanels();
+    this.message.set('Please follow the prompt to register your passkey...');
+    
+    this.auth.webAuthnRegisterOptions().subscribe({
+      next: async (optionsRes) => {
+        try {
+          const credential = await create({ publicKey: optionsRes.options });
+          
+          const attestationObject = credential.response.attestationObject;
+          const clientDataJSON = credential.response.clientDataJSON;
+          
+          this.auth.webAuthnRegisterVerify('My Passkey', attestationObject, clientDataJSON).subscribe({
+            next: (res) => {
+              if (res.success) {
+                this.message.set(res.message);
+              } else {
+                this.error.set(res.message || 'Passkey registration failed');
+              }
+            },
+            error: (err) => this.error.set(err.error?.message || 'Failed to verify passkey on server')
+          });
+        } catch (e: any) {
+          this.message.set('');
+          this.error.set(e.message || 'Passkey registration cancelled or failed');
+        }
+      },
+      error: (err) => {
+        this.message.set('');
+        this.error.set(err.error?.message || 'Failed to fetch passkey options')
+      }
+    });
   }
 
   goBack(): void { this.router.navigate(['/dashboard']); }

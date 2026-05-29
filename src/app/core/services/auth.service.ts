@@ -1,5 +1,4 @@
-import { environment } from '../../../environments/environment';
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
@@ -7,13 +6,13 @@ import { AuthResponse, LoginRequest, RegisterRequest, MfaVerifyRequest, ApiRespo
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = '/api';
   private tokenSignal = signal<string | null>(localStorage.getItem('auth_token'));
+  private http = inject(HttpClient);
+  private router = inject(Router);
 
   isAuthenticated = computed(() => !!this.tokenSignal());
   token = computed(() => this.tokenSignal());
-
-  constructor(private http: HttpClient, private router: Router) {}
 
   register(req: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, req)
@@ -45,12 +44,30 @@ export class AuthService {
     return this.http.post<ApiResponse>(`${this.apiUrl}/mfa/otp/send`, { method });
   }
 
+  sendLoginOtp(mfaToken: string, method: string): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/auth/mfa/otp/send`, { mfaToken, method });
+  }
+
+  webAuthnLoginOptions(mfaToken: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/auth/mfa/webauthn/options`, { mfaToken, method: 'WEBAUTHN' });
+  }
+
   enableOtp(method: string, code: string): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.apiUrl}/mfa/otp/enable?code=${code}`, { method });
   }
 
   getMfaMethods(): Observable<ApiResponse> {
     return this.http.get<ApiResponse>(`${this.apiUrl}/mfa/methods`);
+  }
+
+  webAuthnRegisterOptions(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/mfa/webauthn/register/options`, {});
+  }
+
+  webAuthnRegisterVerify(deviceName: string, attestationObject: string, clientDataJSON: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/mfa/webauthn/register/verify`, {
+      deviceName, attestationObject, clientDataJSON
+    });
   }
 
   disableMfa(method: string): Observable<ApiResponse> {

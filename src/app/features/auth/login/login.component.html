@@ -78,17 +78,26 @@
         </p>
       }
 
-      <div class="form-group">
-        <label for="mfa-code">Verification Code</label>
-        <input id="mfa-code" type="text" [ngModel]="mfaCode()" (ngModelChange)="mfaCode.set($event)"
-               placeholder="Enter 6-digit code" maxlength="6" autocomplete="one-time-code"
-               aria-label="MFA verification code" (keyup.enter)="onVerifyMfa()"
-               style="text-align:center; font-size:24px; letter-spacing:8px">
-      </div>
-      <button class="btn btn-primary" style="width:100%" [disabled]="loading() || mfaCode().length < 6"
-              (click)="onVerifyMfa()" aria-label="Verify MFA code">
-        @if (loading()) { <span class="loading">⏳</span> Verifying... } @else { ✅ Verify }
-      </button>
+      @if (selectedMethod() === 'WEBAUTHN') {
+        <div style="text-align:center; padding: 20px 0;">
+          <div style="font-size: 40px; margin-bottom: 16px;">🔐</div>
+          <button class="btn btn-primary" style="width:100%" [disabled]="loading()" (click)="webAuthnLogin()">
+            @if (loading()) { <span class="loading">⏳</span> Waiting for Passkey... } @else { 👆 Use Passkey / Fingerprint }
+          </button>
+        </div>
+      } @else {
+        <div class="form-group">
+          <label for="mfa-code">Verification Code</label>
+          <input id="mfa-code" type="text" [ngModel]="mfaCode()" (ngModelChange)="mfaCode.set($event)"
+                 placeholder="Enter 6-digit code" maxlength="6" autocomplete="one-time-code"
+                 aria-label="MFA verification code" (keyup.enter)="onVerifyMfa()"
+                 style="text-align:center; font-size:24px; letter-spacing:8px">
+        </div>
+        <button class="btn btn-primary" style="width:100%" [disabled]="loading() || mfaCode().length < 6"
+                (click)="onVerifyMfa()" aria-label="Verify MFA code">
+          @if (loading()) { <span class="loading">⏳</span> Verifying... } @else { ✅ Verify }
+        </button>
+      }
       <button class="btn btn-outline" style="width:100%; margin-top:10px" (click)="step.set(1)">← Back</button>
     }
   </div>
