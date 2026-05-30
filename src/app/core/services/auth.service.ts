@@ -74,6 +74,14 @@ export class AuthService {
     return this.http.delete<ApiResponse>(`${this.apiUrl}/mfa/${method}`);
   }
 
+  forgotPassword(email: string): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/auth/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/auth/reset-password`, { token, newPassword });
+  }
+
   setToken(token: string): void {
     localStorage.setItem('auth_token', token);
     this.tokenSignal.set(token);

@@ -20,7 +20,10 @@
                placeholder="Enter your username" aria-labelledby="lbl-username" autocomplete="username">
       </div>
       <div class="form-group">
-        <label for="password" id="lbl-password">Password</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label for="password" id="lbl-password" style="margin-bottom: 0;">Password</label>
+          <a routerLink="/forgot-password" style="font-size: 12px; font-weight: 500;">Forgot?</a>
+        </div>
         <input id="password" type="password" [ngModel]="password()" (ngModelChange)="password.set($event)"
                placeholder="Enter your password" aria-labelledby="lbl-password" autocomplete="current-password"
                (keyup.enter)="onLogin()">
